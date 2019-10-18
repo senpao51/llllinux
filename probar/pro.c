@@ -9,7 +9,9 @@ int main()
 	int i = 0;
 	for(i=0;i<=100;i++)
 	{
-		printf("[%s][%d%%][%c]\r",arr,i,led[i%4]);
+		printf("[%s]",arr);
+		printf("[%d]",i);
+		printf("[%c]\r",led[i%4]);
 		fflush(stdout);
 		usleep(100000);
 		arr[i]='*';
