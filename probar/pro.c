@@ -1,20 +1,19 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 int main()
 {
+	char arr[101];
+	char led[]="-/|\\";
+	memset(arr,'\0',sizeof(arr));
 	int i = 0;
-	char bar[101];
-	char lab[]="|/-\\";
-	memset(bar,'\0',sizeof(bar));
 	for(i=0;i<=100;i++)
 	{
-		printf("[%-100s][%d\%][%c]\r",bar,i,lab[i%4]);
+		printf("[%s][%d%%][%c]\r",arr,i,led[i%4]);
 		fflush(stdout);
-		bar[i]='#';
 		usleep(100000);
+		arr[i]='*';
 	}
 	printf("\n");
 	return 0;
 }
-
