@@ -1,0 +1,16 @@
+lib = libmath.a
+$(lib):add.o sub.o
+	ar -rc  -o $@ $^
+add.o:add.c
+	gcc  -c $^
+sub.o:sub.c
+	gcc  -c $^
+.PHONY:output
+output:
+	mkdir -p lib/lib
+	mkdir -p lib/include
+	cp *.a lib/lib
+	cp *.h lib/include
+.PHONY:clean
+clean:
+	rm -f *.o *.a
