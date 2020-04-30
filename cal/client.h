@@ -17,19 +17,20 @@ class Client
 		void InitClient()
 		{
 			sockfd = Pro::Sock();
-			Pro::Connect(sockfd,ip,port);
 		}
 		void Run()
 		{
+			Pro::Connect(sockfd,ip,port);
 			while(1)
 			{
 				request_t rq;
 				response_t rp;
-				//memset(&rq,0,sizeof(rq));
-				//memset(&rp,0,sizeof(rp));
-				std::cout<<"请输入两个操作数"<<std::endl;
-				std::cin>>rq.x>>rq.y;
-				std::cout<<"请输入运算符"<<std::endl;
+				memset(&rq,0,sizeof(rq));
+				memset(&rp,0,sizeof(rp));
+				std::cout<<"请输入两个操作数:";
+				std::cin>>rq.x;
+				std::cin>>rq.y;
+				std::cout<<"请输入运算符:";
 				std::cin>>rq.op;
 				write(sockfd,&rq,sizeof(rq));
 				ssize_t s = read(sockfd,&rp,sizeof(rp));
@@ -56,6 +57,8 @@ class Client
 				else 
 					break;
 			}
+			close(sockfd);
+			sockfd = -1;
 		}
 	private:
 		int sockfd;
