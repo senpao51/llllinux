@@ -1,6 +1,8 @@
 #pragma once 
 #include <iostream>
+#include <pthread.h>
 #include "Sock.h"
+#include "Pro.h"
 #include "Log.h"
 using namespace std;
 
@@ -29,14 +31,14 @@ public:
 	{
 		while(1)
 		{
-			LOG(NORMAL,"test");
-			sleep(1);
-		//	int sock = Sock::Accept(listen_sock);
-		//	if(sock>0)
-		//	{
-		//		LOG(NORMAL,"get a new link!");
-		//		sleep(1);
-		//	}
+			LOG(NORMAL,"server start successfully!");
+			int sock = Sock::Accept(listen_sock);
+			if(sock>=0)
+			{
+				LOG(NORMAL,"get a new link!");
+				pthread_t tid;
+				pthread_create(&tid,nullptr,Entry::HandlerRequest,(void*)&sock);
+			}
 		}
 	}
 private:

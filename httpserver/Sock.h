@@ -53,7 +53,6 @@ public:
 	{
 		struct sockaddr_in peer;
 		socklen_t len = sizeof(peer);
-		cout<<"5"<<endl;
 		int _sock = accept(sock,(struct sockaddr*)&peer,&len);
 		if(_sock<0)
 		{

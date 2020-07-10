@@ -1,5 +1,4 @@
 #pragma once 
-#include "HttpServer.h"
 #include "Log.h"
 #include <iostream>
 #include <string>
@@ -25,8 +24,13 @@ class Connect
 public:
 	Connect(int _sock):sock(_sock)
 	{}
-
-	void RecvHttpRequest(HttpRequest& rq)
+	//1 \r
+	//2 \r\n
+	//3 \n
+	//一次读一个字符
+	int RecvLine()
+	{}
+	void RecvHttpRequest(HttpRequest*& rq)
 	{}
 	~Connect()
 	{}
@@ -38,10 +42,10 @@ class Entry
 public:
 	static void* HandlerRequest(void*arg)
 	{
-		int sock = (int)arg;
+		int* sock = (int*)arg;
 		HttpRequest* rq = new HttpRequest();
 		HttpResponse* rp = new HttpResponse();
-		Connect* con = new Connect(sock);
+		Connect* con = new Connect(*sock);
 		con->RecvHttpRequest(rq);
 		//recv request
 		//解析
