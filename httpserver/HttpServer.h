@@ -38,6 +38,7 @@ public:
 				LOG(NORMAL,"get a new link!");
 				pthread_t tid;
 				pthread_create(&tid,nullptr,Entry::HandlerRequest,(void*)&sock);
+				pthread_detach(tid);
 			}
 		}
 	}

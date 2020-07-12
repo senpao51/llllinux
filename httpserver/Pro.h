@@ -2,6 +2,8 @@
 #include "Log.h"
 #include <iostream>
 #include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
 using namespace std;
 class HttpRequest
 {
@@ -28,8 +30,31 @@ public:
 	//2 \r\n
 	//3 \n
 	//一次读一个字符
-	int RecvLine()
-	{}
+	int RecvLine(string &line)
+	{
+		char c = 'A';
+		while(c!='\n')
+		{
+			ssize_t s = recv(sock,&c,1,0);
+			if(s>0)
+			{
+				if(c=='\r')
+				{
+					recv(sock,&c,1,MSG_PEEK);//窥探底层数据，并不拿走底层数据
+					if(c=='\n')
+						recv(sock,&c,1,0);
+					else
+						c = '\n';
+				}
+				line += c;
+			}
+			else
+			{
+				LOG(ERROR,"recv error!");
+			}
+		}
+		return line.size();
+	}
 	void RecvHttpRequest(HttpRequest*& rq)
 	{}
 	~Connect()
