@@ -38,7 +38,41 @@ public:
 	{
 		request_header = header;
 	}
+	void SetRequestText(string& text)
+	{
+		request_text = text;
+	}
+	void SetRequestPath(string& _path)
+	{
+		path = _path;
+	}
 public:
+	int GetContentLength()
+	{
+		auto it = header_map.find("Content-Length");
+		if(it==header_map.end())
+		{
+			LOG(WARNING,"request_text is not exist!");
+			return -1;
+		}
+		return Util::StringToInt(it->second);
+	}
+public:
+	void DetachUrl()
+	{
+		//url = 资源路径path+ ? +参数parameter(有可能不存在)
+		auto p = url.find('?');
+		if(p!=string::npos)
+		{
+			path = url;
+		}
+		else
+		{
+			path = url.substr(0,p);
+			parameter = url.substr(p+1);
+		}
+
+	}
 	void DetachRequestLine()//分离请求行   方法  url  版本
 	{
 		stringstream ss(request_line);
@@ -59,14 +93,30 @@ public:
 			pos = request_header.find('\n',pos+1);
 		}
 	}
+	void show()
+	{
+	cout<<"###############################"<<endl;
+	cout<<"reline = "<<request_line;
+	cout<< "request_header = "<<request_header;
+	cout<< "blank = "<<blank;
+	cout<<"request = "<<request_text;
+	cout<<"method = "<<method<<endl;
+	cout<<"url = "<<url<<endl;// path+ ? +parameter
+	cout<<"version = "<<version<<endl;
+	cout<<"path = "<<path<<endl;//资源路径  
+	cout<<"parameter = "<<parameter<<endl;//参数
+	cout<<"###############################"<<endl;
+	}
 private:
 	string request_line;
 	string request_header;
 	string blank;
 	string request_text;
 	string method;
-	string url;
+	string url;// path+ ? +parameter
 	string version;
+	string path;//资源路径  
+	string parameter;//参数
 	unordered_map<string,string>header_map;
 };
 class HttpResponse
@@ -133,6 +183,24 @@ public:
 		RecvRequestHeader(rq_header);
 		rq->SetRequestLine(rq_line);
 		rq->SetRequestHeader(rq_header);
+		rq->DetachRequestLine();
+		rq->DetachRequestHeader();
+	}
+	void RecvHttpText(HttpRequest*& rq)//读取http的正文，并放在request_text中
+	{
+		int content_length = rq->GetContentLength();
+		if(content_length > 0)
+		{
+			string text;
+			char c;
+			while(content_length>0)
+			{
+				recv(sock,&c,1,0);
+				text+=c;
+				content_length--;
+			}
+			rq->SetRequestText(text);
+		}
 	}
 	~Connect()
 	{}
@@ -148,19 +216,29 @@ public:
 		HttpRequest* rq = new HttpRequest();
 		HttpResponse* rp = new HttpResponse();
 		Connect* con = new Connect(*sock);
-		//读取请求
+		//读取请求并拆分各个部分
 		con->RecvHttpRequest(rq);
 		//解析
 		if(!rq->MethodIsOK())
 		{
-			LOG(WARNING,"method is wrong!");
+			LOG(WARNING,"method error!");
 		}
-		if(rq->MethodIsGet())//是Get方法
-		{}
-		else//Post方法
-		{}
+		//url 域名/资源地址?AAA=BBB&CCC=DDD&...
+		if(!rq->MethodIsGet())//是POST方法
+		{
+			//Post方法
+			con->RecvHttpText(rq);//表明request请求全部读完
+		}
+		//GET方法
+		//1.分析请求路径是否携带参数,
+		if(rq->MethodIsGet())
+		{
+			rq->DetachUrl();
+		}
+		//2.分析请求资源是否合法
 		//制作响应
 		//发送响应
+		rq->show();
 		delete rq;
 		delete rp;
 		delete con;
