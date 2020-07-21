@@ -9,7 +9,7 @@ using namespace std;
 #define BIND_ERROR 3
 #define LISTEN_ERROR 4
 
-#define ANY  -1
+#define OTHER  -1
 #define NORMAL 1
 #define WARNING 2
 #define ERROR 3
