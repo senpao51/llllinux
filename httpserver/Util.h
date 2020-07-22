@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 using namespace std;
 
 
@@ -22,5 +23,21 @@ public:
 		int count = 0;
 		ss>>count;
 		return count;
+	}
+	static string IntToString(int num)
+	{
+		stringstream ss;
+		ss<<num;
+		string s = ss.str();
+		return s;
+	}
+	static string SuffixToType(string suffix)
+	{
+		unordered_map<string,string> mp;
+		mp.insert({".js","application/x-javascipt"});
+		mp.insert({".css","text/css"});
+		mp.insert({".jpg","application/x-jpg"});
+		mp.insert({".html","text/html"});
+		return mp[suffix];
 	}
 };
