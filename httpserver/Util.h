@@ -38,6 +38,10 @@ public:
 		mp.insert({".css","text/css"});
 		mp.insert({".jpg","application/x-jpg"});
 		mp.insert({".html","text/html"});
-		return mp[suffix];
+		auto pos = mp.find(suffix);
+		if(pos!=mp.end())
+			return pos->second;
+		else
+			return mp[suffix];
 	}
 };

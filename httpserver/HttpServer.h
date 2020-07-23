@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "Sock.h"
 #include "Pro.h"
+#include "ThreadPool.h"
 #include "Log.h"
 using namespace std;
 
@@ -11,7 +12,7 @@ using namespace std;
 class HttpServer
 {
 public:
-	HttpServer(int _port = DEFAULT_PORT):port(_port),listen_sock(-1)
+	HttpServer(int _port = DEFAULT_PORT):port(_port),listen_sock(-1),tp(nullptr)
 	{}
 	~HttpServer()
 	{
@@ -26,6 +27,8 @@ public:
 		listen_sock = Sock::Socket();
 		Sock::Bind(listen_sock,port);
 		Sock::Listen(listen_sock);
+		tp = new ThreadPool();
+		tp->InitThreadPool();
 	}
 	void Run()
 	{
@@ -36,13 +39,17 @@ public:
 			if(sock>=0)
 			{
 				LOG(NORMAL,"get a new link!");
-				pthread_t tid;
-				pthread_create(&tid,nullptr,Entry::HandlerRequest,(void*)&sock);
-				pthread_detach(tid);
+				Task t;
+				t.SetTask(sock,Entry::HandlerRequest);
+				tp->Push(t);
+			//	pthread_t tid;
+			//	pthread_create(&tid,nullptr,Entry::HandlerRequest,(void*)&sock);
+			//	pthread_detach(tid);
 			}
 		}
 	}
 private:
 	int listen_sock;
 	int port;
+	ThreadPool *tp;
 };

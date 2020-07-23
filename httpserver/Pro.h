@@ -1,6 +1,7 @@
 #pragma once 
 #include "Log.h"
 #include "Util.h"
+#include "ThreadPool.h"
 #include <iostream>
 #include <string>
 #include <sys/types.h>
@@ -390,9 +391,23 @@ public:
 	static void ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
 	{
 		//CGI
+		pid_t id = fork();
+		if(id==0)
+		{
+			//child
+		}
+		else if(id>0)
+		{
+			//father
+		}
+		else
+		{
+			//error
+		}
 	}
 	static void* HandlerRequest(void*arg)
 	{
+		int code = 200;
 		int* sock = (int*)arg;
 		HttpRequest* rq = new HttpRequest();
 		HttpResponse* rp = new HttpResponse();
@@ -404,7 +419,9 @@ public:
 		rq->DetachRequestHeader();//分离请求报头
 		if(!rq->MethodIsOK())
 		{
+			code = 404;
 			LOG(WARNING,"method error!");
+			goto end;
 		}
 		//url 域名/资源地址?AAA=BBB&CCC=DDD&...
 		if(rq->MethodIsPost())//是POST方法
@@ -419,7 +436,9 @@ public:
 		//2.分析请求资源是否合法
 		if(!rq->PathIsLegal())
 		{
+			code = 404;
 			LOG(WARNING,"path is not legal!");
+			goto end;
 		}
 		//请求全部处理完，包括请求行分离，请求报头分离，url解析，方法确定，cgi设置，
 		if(rq->IsCgi())
@@ -436,7 +455,8 @@ public:
 		}
 		//制作响应
 		//发送响应
-		rq->show();
+		//rq->show();
+end:
 		delete rq;
 		delete rp;
 		delete con;
