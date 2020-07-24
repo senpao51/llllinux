@@ -388,21 +388,34 @@ public:
 		MakeResponse(rq,rp);//制作响应
 		con->SendResponse(rq,rp);//发送响应
 	}
-	static void ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
+	static int  ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
 	{
 		//CGI
+		//读写站在子进程角度
+		int read_pipe[2];
+		int write_pipe[2];
+		pipe(read_pipe);
+		pipe(write_pipe);
 		pid_t id = fork();
 		if(id==0)
 		{
 			//child
+			//通过read_pipe来读，关闭写端，通过write_pipe来写，关闭读端
+			close(read_pipe[1]);
+			close(write_pipe[0]);
 		}
 		else if(id>0)
 		{
 			//father
+			//通过read_pipe来写，关闭读端，通过write_pipe来读，关闭写端
+			close(read_pipe[0]);
+			close(write_pipe[1]);
 		}
 		else
 		{
 			//error
+			LOG(ERROR,"fork error!");
+			return 404;
 		}
 	}
 	static void* HandlerRequest(void*arg)

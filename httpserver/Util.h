@@ -33,15 +33,25 @@ public:
 	}
 	static string SuffixToType(string suffix)
 	{
-		unordered_map<string,string> mp;
-		mp.insert({".js","application/x-javascipt"});
-		mp.insert({".css","text/css"});
-		mp.insert({".jpg","application/x-jpg"});
-		mp.insert({".html","text/html"});
-		auto pos = mp.find(suffix);
-		if(pos!=mp.end())
-			return pos->second;
+		if(suffix==".html"||suffix=="htm")
+			return "text/html";
+		else if(suffix==".js")
+			return "application/x-javascript";
+		else if(suffix==".css")
+			return "text/css";
+		else if(suffix==".jpg")
+			return "application/x-jpg";
 		else
-			return mp[suffix];
+			return "text/html";
+		//unordered_map<string,string> mp;
+		//mp.insert({".js","application/x-javascipt"});
+		//mp.insert({".css","text/css"});
+		//mp.insert({".jpg","application/x-jpg"});
+		//mp.insert({".html","text/html"});
+		//auto pos = mp.find(suffix);
+		//if(pos!=mp.end())
+		//	return pos->second;
+		//else
+		//	return mp[suffix];
 	}
 };
