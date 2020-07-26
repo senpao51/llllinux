@@ -145,6 +145,18 @@ public:
 	{
 		return suffix;
 	}
+	string& GetParameter()
+	{
+		return parameter;
+	}
+	string& GetRequestText()
+	{
+		return request_text;
+	}
+	string& GetPath()
+	{
+		return path;
+	}
 public:
 	void DetachUrl()
 	{
@@ -392,6 +404,7 @@ public:
 	{
 		//CGI
 		//读写站在子进程角度
+		//子进程用来处理CGI模块数据，父进程通过管道读取处理好的数据
 		int read_pipe[2];
 		int write_pipe[2];
 		pipe(read_pipe);
@@ -403,13 +416,44 @@ public:
 			//通过read_pipe来读，关闭写端，通过write_pipe来写，关闭读端
 			close(read_pipe[1]);
 			close(write_pipe[0]);
+			string path = rq->GetPath();
+			//程序替换
+
+			//约定0号文件描述符读取，往1文件描述符打印
+			//将本来指向0号文件描述符的文件指向到read_pipe[0],将本来指向1号文件描述符的文件指向到write_pipe[]中
+			execl(path.c_str(),path.c_str(),nullptr);//执行CGI程序，默认显示到显示器，要想办法输出到文件中，增加约定，利用重定向技术，完成文件描述符的约定
+			//读取请求数据
+			//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
+			exit(1);
 		}
 		else if(id>0)
 		{
 			//father
 			//通过read_pipe来写，关闭读端，通过write_pipe来读，关闭写端
+			string args;
+			if(rq->MethodIsGet())
+			{
+				args = rq->GetParameter();
+			}
+			if(rq->MethodIsPost())
+			{
+				args = rq->GetRequestText();
+			}
 			close(read_pipe[0]);
 			close(write_pipe[1]);
+			char ch;
+			string msg = "";//http响应数据
+			while(read(write_pipe[0],&c,1)>0)
+			{
+				msg+=c;
+			}
+			//将msg设置为response_text中
+			pid_t ret = waitpid(id,nullptr,0);
+			if(ret<0)
+			{
+				LOG(WARNING,"waitpid child error!");
+				return 404;
+			}
 		}
 		else
 		{
