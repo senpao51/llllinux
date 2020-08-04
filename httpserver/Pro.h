@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -400,7 +401,7 @@ public:
 		MakeResponse(rq,rp);//制作响应
 		con->SendResponse(rq,rp);//发送响应
 	}
-	static int  ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
+	static int ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
 	{
 		//CGI
 		//读写站在子进程角度
@@ -430,7 +431,7 @@ public:
 		{
 			//father
 			//通过read_pipe来写，关闭读端，通过write_pipe来读，关闭写端
-			string args;
+			string args;//参数
 			if(rq->MethodIsGet())
 			{
 				args = rq->GetParameter();
@@ -441,7 +442,7 @@ public:
 			}
 			close(read_pipe[0]);
 			close(write_pipe[1]);
-			char ch;
+			char c;
 			string msg = "";//http响应数据
 			while(read(write_pipe[0],&c,1)>0)
 			{
