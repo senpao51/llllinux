@@ -425,7 +425,7 @@ public:
 			execl(path.c_str(),path.c_str(),nullptr);//执行CGI程序，默认显示到显示器，要想办法输出到文件中，增加约定，利用重定向技术，完成文件描述符的约定
 			//读取请求数据
 			//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
-			exit(1);
+			exit(1);//execl程序如果出错，直接退出
 		}
 		else if(id>0)
 		{
