@@ -426,6 +426,7 @@ public:
 			//读取请求数据
 			//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
 			exit(1);//execl程序如果出错，直接退出
+			//hello
 		}
 		else if(id>0)
 		{
