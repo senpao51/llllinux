@@ -4,6 +4,7 @@
 #include "ThreadPool.h"
 #include <iostream>
 #include <string>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
@@ -252,6 +253,10 @@ public:
 			response_header += line;
 		}
 	}
+	void SetResponseText(string& text)
+	{
+		response_text = text;
+	}
 public:
 	string& GetResponseLine()
 	{
@@ -264,6 +269,10 @@ public:
 	string& GetBlank()
 	{
 		return blank;
+	}
+	string& GetResponseText()
+	{
+		return response_text;
 	}
 private:
 	string response_line;
@@ -357,7 +366,15 @@ public:
 		line += rp->GetResponseHeader();
 		line += rp->GetBlank();
 		send(sock,line.c_str(),line.size(),0);//发送响应行，响应报头，空行
-		sendfile(sock,rq->GetFd(),nullptr,rq->GetFileSize());//发送响应正文
+		if(rq->IsCgi())
+		{
+			string text = rp->GetResponseText();
+			send(sock,text.c_str(),text.size(),0);
+		}
+		else
+		{
+			sendfile(sock,rq->GetFd(),nullptr,rq->GetFileSize());//发送响应正文
+		}
 	}
 private:
 	int sock;
@@ -365,24 +382,30 @@ private:
 class Entry
 {
 public:
-	static void MakeResponse(HttpRequest* rq,HttpResponse* rp)
+	static void MakeResponse(HttpRequest* rq,HttpResponse* rp,int code)
 	{
+		string line = Util::GetResponseLine(code);
+		rp->SetResponseLine(line);//设置响应行
+		line = "Content-Type: ";
+		line+=Util::SuffixToType(rq->GetSuffix());
+		line+="\r\n";
+		rp->SetResponseHeader(line);
+		line = "Content-Length: ";
 		if(rq->IsCgi())
 		{
 			//cgi
+			string text = rp->GetResponseText();
+			line += Util::IntToString(text.size());
+			line += "\r\n";
+			line += "\r\n";//空行
+			rp->SetResponseHeader(line);//设置响应报头，空行		
 		}
 		else
 		{
-			string line = "HTTP1.1 200 OK\r\n";
-			rp->SetResponseLine(line);//设置响应行
-			line = "Content-Type: ";
-			line+=Util::SuffixToType(rq->GetSuffix());
-			line+="\r\n";
-			rp->SetResponseHeader(line);
-			line = "Content-Length: ";
-			line+=Util::IntToString(rq->GetFileSize());
-			line+="\r\n";
-			line+="\r\n";//空行
+			//nocgi
+			line += Util::IntToString(rq->GetFileSize());
+			line += "\r\n";//空行
+			line += "\r\n";//空行
 			rp->SetResponseHeader(line);//设置响应报头，空行		
 			if(!rq->OpenResources())//打开资源
 			{
@@ -395,12 +418,6 @@ public:
 			}
 		}
 	}
-	static void ProcessNoCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
-	{
-		//非CGI
-		MakeResponse(rq,rp);//制作响应
-		con->SendResponse(rq,rp);//发送响应
-	}
 	static int ProcessByCgi(Connect* con,HttpRequest* rq,HttpResponse* rp)
 	{
 		//CGI
@@ -410,6 +427,16 @@ public:
 		int write_pipe[2];
 		pipe(read_pipe);
 		pipe(write_pipe);
+		string content_length;
+		string args;//参数
+		if(rq->MethodIsGet())
+		{
+			args = rq->GetParameter();
+		}
+		if(rq->MethodIsPost())
+		{
+			args = rq->GetRequestText();
+		}
 		pid_t id = fork();
 		if(id==0)
 		{
@@ -417,39 +444,36 @@ public:
 			//通过read_pipe来读，关闭写端，通过write_pipe来写，关闭读端
 			close(read_pipe[1]);
 			close(write_pipe[0]);
-			string path = rq->GetPath();
-			//程序替换
-
+			string path = rq->GetPath();//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
 			//约定0号文件描述符读取，往1文件描述符打印
-			//将本来指向0号文件描述符的文件指向到read_pipe[0],将本来指向1号文件描述符的文件指向到write_pipe[]中
+			//0->read_pipe[0]   1->write_pipe[1]
+			dup2(read_pipe[0],0);
+			dup2(write_pipe[1],1);
+			content_length = "Content-Length: ";
+			content_length += Util::IntToString(args.size());
+			putenv((char*)content_length.c_str());//将读取数据的长度导入环境变量里
+			//程序替换
 			execl(path.c_str(),path.c_str(),nullptr);//执行CGI程序，默认显示到显示器，要想办法输出到文件中，增加约定，利用重定向技术，完成文件描述符的约定
-			//读取请求数据
-			//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
 			exit(1);//execl程序如果出错，直接退出
-			//hello
 		}
 		else if(id>0)
 		{
 			//father
 			//通过read_pipe来写，关闭读端，通过write_pipe来读，关闭写端
-			string args;//参数
-			if(rq->MethodIsGet())
-			{
-				args = rq->GetParameter();
-			}
-			if(rq->MethodIsPost())
-			{
-				args = rq->GetRequestText();
-			}
 			close(read_pipe[0]);
 			close(write_pipe[1]);
+			for(int i=0;i<args.size();i++)
+			{
+				write(read_pipe[1],&args[i],1);//向read_pipe中写入path所对应的数据
+			}
 			char c;
 			string msg = "";//http响应数据
-			while(read(write_pipe[0],&c,1)>0)
+			while(read(write_pipe[0],&c,1)>0)//向write_pipe中读取子进程处理好的数据
 			{
 				msg+=c;
 			}
 			//将msg设置为response_text中
+			rp->SetResponseText(msg);
 			pid_t ret = waitpid(id,nullptr,0);
 			if(ret<0)
 			{
@@ -463,6 +487,7 @@ public:
 			LOG(ERROR,"fork error!");
 			return 404;
 		}
+		return 200;//cgi成功
 	}
 	static void* HandlerRequest(void*arg)
 	{
@@ -504,18 +529,17 @@ public:
 		{
 			//cgi的处理方法   带参数，解析参数
 			LOG(NORMAL,"exec by cgi!");
-			ProcessByCgi(con,rq,rp);
+			code = ProcessByCgi(con,rq,rp);
 		}
 		else
 		{
 			//非cgi的处理方法  不带参数，请求资源而已
 			LOG(NORMAL,"exec no cgi!");
-			ProcessNoCgi(con,rq,rp);
 		}
-		//制作响应
-		//发送响应
-		//rq->show();
 end:
+		MakeResponse(rq,rp,code);//制作响应
+		con->SendResponse(rq,rp);//发送响应
+		//rq->show();
 		delete rq;
 		delete rp;
 		delete con;

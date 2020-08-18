@@ -54,4 +54,19 @@ public:
 		//else
 		//	return mp[suffix];
 	}
+	static string GetResponseLine(int code)
+	{
+		switch(code)
+		{
+			case 200:
+				return "HTTP/1.0 200 OK\r\n";
+				break;
+			case 404:
+				return "HTTP/1.0 404 NotFound\r\n";
+				break;
+			default:
+				return "HTTP/1.0 200 OK\r\n";
+				break;
+		}
+	}
 };
