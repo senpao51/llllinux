@@ -19,6 +19,7 @@ using namespace std;
 
 #define DEFAULT_ROOT "./page"
 #define DEFAULT_PAGE "index.html"
+#define DEFAULT_ERROR "./page/404.html"
 
 
 
@@ -123,6 +124,14 @@ public:
 	void SetCgi()
 	{
 		cgi = true;
+	}
+	void SetPath(string _path)
+	{
+		path = _path;
+		cgi = false;
+		struct stat st;
+		stat(path.c_str(),&st);
+		file_size = st.st_size;
 	}
 public:
 	int GetContentLength()
@@ -294,8 +303,9 @@ public:
 	//2 \r\n
 	//3 \n
 	//一次读一个字符
-	void RecvLine(string &line)
+	bool RecvLine(string &line)
 	{
+		bool flag = true;
 		char c = 'A';
 		while(c!='\n')
 		{
@@ -314,33 +324,47 @@ public:
 			}
 			else
 			{
+				flag = false;
 				LOG(ERROR,"recv error!");
 			}
 		}
+		return flag;
 	}
-	void RecvRequestLine(string& line)//读取请求行
+	bool RecvRequestLine(string& line)//读取请求行
 	{
-		RecvLine(line);
+		return RecvLine(line);
 	}
-	void RecvRequestHeader(string& header)//读取请求报头
+	bool RecvRequestHeader(string& header)//读取请求报头
 	{
 		string tmp;
+		bool flag = true;
 		do
 		{
 			tmp="";
-			RecvLine(tmp);
-			if(tmp!="\n")
-				header+=tmp;
+			if(RecvLine(tmp))
+			{
+				if(tmp!="\n")
+					header+=tmp;
+			}
+			else
+			{
+				flag = false;
+				break;
+			}
 		}while(tmp!="\n");
+		return flag;
 	}
-	void RecvHttpRequest(HttpRequest*& rq)//设置http的请求行，请求报头以及空行
+	int RecvHttpRequest(HttpRequest*& rq)//设置http的请求行，请求报头以及空行
 	{
 		string rq_line;
 		string rq_header;
-		RecvRequestLine(rq_line);
-		RecvRequestHeader(rq_header);
-		rq->SetRequestLine(rq_line);
-		rq->SetRequestHeader(rq_header);
+		if(RecvRequestLine(rq_line) && RecvRequestHeader(rq_header))
+		{
+			rq->SetRequestLine(rq_line);
+			rq->SetRequestHeader(rq_header);
+			return 200;
+		}
+		return 404;
 	}
 	void RecvHttpText(HttpRequest*& rq)//读取http的正文，并放在request_text中
 	{
@@ -385,6 +409,10 @@ public:
 	static void MakeResponse(HttpRequest* rq,HttpResponse* rp,int code)
 	{
 		string line = Util::GetResponseLine(code);
+		if(code==404)
+		{
+			rq->SetPath(DEFAULT_ERROR);
+		}
 		rp->SetResponseLine(line);//设置响应行
 		line = "Content-Type: ";
 		line+=Util::SuffixToType(rq->GetSuffix());
@@ -449,7 +477,7 @@ public:
 			//0->read_pipe[0]   1->write_pipe[1]
 			dup2(read_pipe[0],0);
 			dup2(write_pipe[1],1);
-			content_length = "Content-Length: ";
+			content_length = "Content-Length=";
 			content_length += Util::IntToString(args.size());
 			putenv((char*)content_length.c_str());//将读取数据的长度导入环境变量里
 			//程序替换
@@ -497,10 +525,18 @@ public:
 		HttpResponse* rp = new HttpResponse();
 		Connect* con = new Connect(*sock);
 		//读取请求并拆分各个部分
-		con->RecvHttpRequest(rq);
-		//解析
-		rq->DetachRequestLine();//分离请求行
-		rq->DetachRequestHeader();//分离请求报头
+		code = con->RecvHttpRequest(rq);
+		if(code=200)
+		{
+			//解析
+			rq->DetachRequestLine();//分离请求行
+			rq->DetachRequestHeader();//分离请求报头
+		}
+		else
+		{
+			LOG(WARNING,"Recv HttpRequest Error!");
+			goto end;
+		}
 		if(!rq->MethodIsOK())
 		{
 			code = 404;

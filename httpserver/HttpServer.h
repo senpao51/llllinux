@@ -1,6 +1,7 @@
 #pragma once 
 #include <iostream>
 #include <pthread.h>
+#include <signal.h>
 #include "Sock.h"
 #include "Pro.h"
 #include "ThreadPool.h"
@@ -27,6 +28,7 @@ public:
 		listen_sock = Sock::Socket();
 		Sock::Bind(listen_sock,port);
 		Sock::Listen(listen_sock);
+		signal(SIGPIPE,SIG_IGN);
 		tp = new ThreadPool();
 		tp->InitThreadPool();
 	}
