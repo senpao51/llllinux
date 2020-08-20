@@ -19,9 +19,8 @@ int main()
 			read(0,&c,1);
 			args+=c;
 		}
-		cout<<"<html><h3>";
-		cout<<args<<" : "<<cl<<endl;
-		cout<<"</h3></html>"<<endl;
+		cout<<"<h3>hello</h3>"<<endl;
+		cout<<args<<endl;
 	}
 	else
 	{
