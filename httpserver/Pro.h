@@ -1,20 +1,20 @@
 #pragma once 
-#include "Log.h"
-#include "Util.h"
 #include "ThreadPool.h"
 #include <iostream>
 #include <string>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/sendfile.h>
 #include <unistd.h>
 #include <sstream>
 #include <strings.h>
 #include <unordered_map>
+#include "Log.h"
+#include "Util.h"
 using namespace std;
 
 #define DEFAULT_ROOT "./page"
@@ -26,7 +26,7 @@ using namespace std;
 class HttpRequest
 {
 public:
-	HttpRequest():blank("\n"),path(DEFAULT_ROOT),cgi(false),fd(-1)
+	HttpRequest():blank("\n"),path(DEFAULT_ROOT),cgi(false),file_size(0),fd(-1)
 	{}
 	~HttpRequest()
 	{
@@ -42,15 +42,11 @@ public:
 	}
 	bool MethodIsGet()//判断方法是否为GET
 	{
-		if(strcasecmp(method.c_str(),"GET")==0)
-			return true;
-		return false;
+		return strcasecmp(method.c_str(),"GET")==0
 	}
 	bool MethodIsPost()//判断方法是否为POST
 	{
-		if(strcasecmp(method.c_str(),"POST")==0)
-			return true;
-		return false;
+		return strcasecmp(method.c_str(),"POST")==0
 	}
 	bool PathIsLegal()
 	{
@@ -65,7 +61,6 @@ public:
 				if(path[path.size()-1]!='/')
 					path+='/';
 				path += DEFAULT_PAGE;
-				cout<<"***************path"<<path<<endl;
 			}
 			else if((st.st_mode&S_IXUSR)||(st.st_mode&S_IXGRP)||(st.st_mode&S_IXOTH))// 判断是否具有可执行权限 cgi程序必须具有可执行权限
 				cgi = true;
@@ -101,7 +96,10 @@ public:
 		bool flag = true;
 		fd = open(path.c_str(),O_RDONLY);
 		if(fd<0)
+		{
+			LOG(WARNING,"open resources failed! ");
 			flag = false;
+		}
 		return true;
 	}
 public:
@@ -132,6 +130,7 @@ public:
 		struct stat st;
 		stat(path.c_str(),&st);
 		file_size = st.st_size;
+		suffix = ".html";
 	}
 public:
 	int GetContentLength()
@@ -326,6 +325,7 @@ public:
 			{
 				flag = false;
 				LOG(ERROR,"recv error!");
+				break;
 			}
 		}
 		return flag;
@@ -366,7 +366,7 @@ public:
 		}
 		return 404;
 	}
-	void RecvHttpText(HttpRequest*& rq)//读取http的正文，并放在request_text中
+	void RecvHttpText(HttpRequest* rq)//读取http的正文，并放在request_text中
 	{
 		int content_length = rq->GetContentLength();
 		if(content_length > 0)

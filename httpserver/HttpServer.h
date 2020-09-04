@@ -44,9 +44,6 @@ public:
 				Task t;
 				t.SetTask(sock,Entry::HandlerRequest);
 				tp->Push(t);
-			//	pthread_t tid;
-			//	pthread_create(&tid,nullptr,Entry::HandlerRequest,(void*)&sock);
-			//	pthread_detach(tid);
 			}
 		}
 	}
