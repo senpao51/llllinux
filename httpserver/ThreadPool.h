@@ -77,10 +77,13 @@ public:
 	{
 		pthread_detach(pthread_self());
 		ThreadPool *tp = (ThreadPool*)arg;
-		tp->LockQueue();
-		while(tp->QueueIsEmpty())
+		while(true)
 		{
-			tp->Wait();
+			tp->LockQueue();
+			while(tp->QueueIsEmpty())
+			{
+				tp->Wait();
+			}
 		}
 		Task t = tp->Pop();
 		tp->UnlockQueue();
