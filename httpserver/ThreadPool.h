@@ -84,10 +84,10 @@ public:
 			{
 				tp->Wait();
 			}
+			Task t = tp->Pop();
+			tp->UnlockQueue();
+			t.Run();
 		}
-		Task t = tp->Pop();
-		tp->UnlockQueue();
-		t.Run();
 	}
 	void InitThreadPool()
 	{

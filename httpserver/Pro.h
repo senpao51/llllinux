@@ -42,11 +42,11 @@ public:
 	}
 	bool MethodIsGet()//判断方法是否为GET
 	{
-		return strcasecmp(method.c_str(),"GET")==0
+		return strcasecmp(method.c_str(),"GET")==0;
 	}
 	bool MethodIsPost()//判断方法是否为POST
 	{
-		return strcasecmp(method.c_str(),"POST")==0
+		return strcasecmp(method.c_str(),"POST")==0;
 	}
 	bool PathIsLegal()
 	{
@@ -425,14 +425,12 @@ public:
 			string text = rp->GetResponseText();
 			line += Util::IntToString(text.size());
 			line += "\r\n";
-			line += "\r\n";//空行
 			rp->SetResponseHeader(line);//设置响应报头，空行		
 		}
 		else
 		{
 			//nocgi
 			line += Util::IntToString(rq->GetFileSize());
-			line += "\r\n";//空行
 			line += "\r\n";//空行
 			rp->SetResponseHeader(line);//设置响应报头，空行		
 			if(!rq->OpenResources())//打开资源
@@ -472,7 +470,6 @@ public:
 			//通过read_pipe来读，关闭写端，通过write_pipe来写，关闭读端
 			close(read_pipe[1]);
 			close(write_pipe[0]);
-			string path = rq->GetPath();//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
 			//约定0号文件描述符读取，往1文件描述符打印
 			//0->read_pipe[0]   1->write_pipe[1]
 			dup2(read_pipe[0],0);
@@ -480,6 +477,7 @@ public:
 			content_length = "Content-Length=";
 			content_length += Util::IntToString(args.size());
 			putenv((char*)content_length.c_str());//将读取数据的长度导入环境变量里
+			string path = rq->GetPath();//rq->path 要让子进程执行的程序  parameter(GET)  request_text(POST)
 			//程序替换
 			execl(path.c_str(),path.c_str(),nullptr);//执行CGI程序，默认显示到显示器，要想办法输出到文件中，增加约定，利用重定向技术，完成文件描述符的约定
 			exit(1);//execl程序如果出错，直接退出

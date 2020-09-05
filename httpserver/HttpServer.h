@@ -34,9 +34,9 @@ public:
 	}
 	void Run()
 	{
+		LOG(NORMAL,"server start successfully!");
 		while(1)
 		{
-			LOG(NORMAL,"server start successfully!");
 			int sock = Sock::Accept(listen_sock);
 			if(sock>=0)
 			{
