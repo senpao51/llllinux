@@ -19,7 +19,6 @@ int main()
 			read(0,&c,1);
 			args+=c;
 		}
-		cout<<"<h3>hello</h3>"<<endl;
 		cout<<args<<endl;
 	}
 	else
