@@ -61,7 +61,4 @@ public:
 				break;
 		}
 	}
-	static void GetNumber(int& num1,int& num2)
-	{		
-	}
 };
